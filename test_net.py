@@ -50,7 +50,7 @@ def parse_args():
                       default='pascal_voc', type=str)
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
-                      default='cfgs/vgg16.yml', type=str)
+                      default='cfgs/vgg16_default.yml', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
                       default='res101', type=str)
@@ -87,6 +87,9 @@ def parse_args():
   parser.add_argument('--vis', dest='vis',
                       help='visualization mode',
                       action='store_true')
+  parser.add_argument('--key', dest='key',
+                      help='key to load cfg file',
+                      default='default',type=str)
   args = parser.parse_args()
   return args
 
@@ -108,30 +111,26 @@ if __name__ == '__main__':
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "pascal_voc_0712":
       args.imdb_name = "voc_2007_trainval+voc_2012_trainval"
       args.imdbval_name = "voc_2007_test"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "coco":
       args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
       args.imdbval_name = "coco_2014_minival"
-      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "imagenet":
       args.imdb_name = "imagenet_train"
       args.imdbval_name = "imagenet_val"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "vg":
       args.imdb_name = "vg_150-50-50_minitrain"
       args.imdbval_name = "vg_150-50-50_minival"
-      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
-  args.cfg_file = "cfgs/{}_ls.yml".format(args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
+  # args.cfg_file = "cfgs/{}_ls.yml".format(args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
+  args.cfg_file =  "cfgs/{}_{}.yml".format(args.net,args.key)
 
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
-  if args.set_cfgs is not None:
-    cfg_from_list(args.set_cfgs)
+  # if args.set_cfgs is not None:
+  #   cfg_from_list(args.set_cfgs)
 
   print('Using config:')
   pprint.pprint(cfg)
@@ -142,11 +141,11 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
-  input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
+  input_dir = args.load_dir + "/" + args.net  + "_" + args.key + "/" + args.dataset
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
-    'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
+    'faster_rcnn_{}_{}.pth'.format(args.checksession, args.checkepoch))
 
   # initilize the network here.
   if args.net == 'vgg16':
@@ -283,7 +282,7 @@ if __name__ == '__main__':
               cls_boxes = pred_boxes[inds, :]
             else:
               cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
-            
+
             cls_dets = torch.cat((cls_boxes, cls_scores.unsqueeze(1)), 1)
             # cls_dets = torch.cat((cls_boxes, cls_scores), 1)
             cls_dets = cls_dets[order]
